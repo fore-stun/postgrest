@@ -16,5 +16,6 @@
     {
       packages.aarch64-darwin.default = lib.pipe p.postgrestPackage
         [ pkgs.haskell.lib.justStaticExecutables ];
+      checks.aarch64-darwin.default = p.tests;
     };
 }
