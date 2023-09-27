@@ -5,6 +5,23 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+### Added
+
+ - #1614, Add `db-pool-automatic-recovery` configuration to disable connection retrying - @taimoorzaeem
+ - #2492, Allow full response control when raising exceptions - @taimoorzaeem, @laurenceisla
+ - #2771, Add `Server-Timing` header with JWT duration - @taimoorzaeem
+
+### Fixed
+
+ - #2899, Fix `application/vnd.pgrst.array` not accepted as a valid mediatype - @taimoorzaeem
+ - #2524, Fix schema cache and configuration reloading with `NOTIFY` not working on Windows - @diogob, @laurenceisla
+ - #2915, Fix duplicate headers in response - @taimoorzaeem
+ - #2824, Fix range request with first position same as length return status 206 - @taimoorzaeem
+ - #2939, Fix wrong `Preference-Applied` with `Prefer: tx=commit` when transaction is rollbacked - @steve-chavez
+ - #2939, Fix `count=exact` not being included in `Preference-Applied` - @steve-chavez
+ - #2800, Fix not including to-one embed resources that had a `NULL` value in any of the selected fields when doing null filtering on them - @laurenceisla
+ - #2846, Fix error when requesting `Prefer: count=<type>` and doing null filtering on embedded resources - @laurenceisla
+
 ## [11.2.0] - 2023-08-10
 
 ### Added

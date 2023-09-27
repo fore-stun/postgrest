@@ -1,4 +1,4 @@
-module Feature.Query.NullsStrip where
+module Feature.Query.NullsStripSpec where
 
 import Network.Wai (Application)
 
@@ -41,6 +41,16 @@ spec =
           [json|{"name":"John","referee":null}|]
           `shouldRespondWith`
           [json|[{"id":3,"name":"John","auditor":2,"manager_id":3}]|]
+          { matchStatus  = 200
+          , matchHeaders = [matchCTArrayStrip]
+          }
+
+      it "strips nulls when Accept: application/vnd.pgrst.array;nulls=stripped" $
+        request methodGet  "/organizations?select=*"
+          [("Accept","application/vnd.pgrst.array;nulls=stripped")]
+          ""
+          `shouldRespondWith`
+          [json|[{"id":1,"name":"Referee Org","manager_id":1},{"id":2,"name":"Auditor Org","manager_id":2},{"id":3,"name":"Acme","referee":1,"auditor":2,"manager_id":3},{"id":4,"name":"Umbrella","referee":1,"auditor":2,"manager_id":4},{"id":5,"name":"Cyberdyne","referee":3,"auditor":4,"manager_id":5},{"id":6,"name":"Oscorp","referee":3,"auditor":4,"manager_id":6}]|]
           { matchStatus  = 200
           , matchHeaders = [matchCTArrayStrip]
           }

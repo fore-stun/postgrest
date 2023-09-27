@@ -2,6 +2,7 @@ module Feature.Query.RelatedQueriesSpec where
 
 import Network.Wai (Application)
 
+import Network.HTTP.Types
 import Test.Hspec
 import Test.Hspec.Wai
 import Test.Hspec.Wai.JSON
@@ -255,4 +256,125 @@ spec = describe "related queries" $ do
         [json|[]|]
         { matchStatus  = 200
         , matchHeaders = [matchContentTypeJson]
+        }
+
+    -- "?table=not.is.null" does a "table IS DISTINCT FROM NULL" instead of a "table IS NOT NULL"
+    -- https://github.com/PostgREST/postgrest/issues/2800#issuecomment-1720315818
+    it "embeds verifying that the entire target table row is not null" $ do
+      get "/table_b?select=name,table_a(name)&table_a=not.is.null" `shouldRespondWith`
+        [json|[
+          {"name":"Test 1","table_a":{"name":"Not null 1"}},
+          {"name":"Test 2","table_a":{"name":null}}
+        ]|]
+        { matchStatus  = 200
+        , matchHeaders = [matchContentTypeJson]
+        }
+      get "/table_b?select=name,table_a()&table_a=is.null" `shouldRespondWith`
+        [json|[
+          {"name":"Test 3"}
+        ]|]
+        { matchStatus  = 200
+        , matchHeaders = [matchContentTypeJson]
+        }
+
+    it "works with count=exact" $ do
+      request methodGet "/projects?select=name,clients(name)&clients=not.is.null"
+        [("Prefer", "count=exact")] ""
+       `shouldRespondWith`
+        [json|[
+          {"name":"Windows 7", "clients":{"name":"Microsoft"}},
+          {"name":"Windows 10", "clients":{"name":"Microsoft"}},
+          {"name":"IOS", "clients":{"name":"Apple"}},
+          {"name":"OSX", "clients":{"name":"Apple"}}
+        ]|]
+        { matchStatus  = 200
+        , matchHeaders = [ matchContentTypeJson
+                         , "Content-Range" <:> "0-3/4" ]
+        }
+      request methodGet "/projects?select=name,clients()&clients=is.null"
+        [("Prefer", "count=exact")] ""
+       `shouldRespondWith`
+        [json|[{"name":"Orphan"}]|]
+        { matchStatus  = 200
+        , matchHeaders = [ matchContentTypeJson
+                         , "Content-Range" <:> "0-0/1" ]
+        }
+      request methodGet "/client?select=*,clientinfo(),contact()&clientinfo.other=ilike.*main*&contact.name=ilike.*tabby*&or=(clientinfo.not.is.null,contact.not.is.null)"
+        [("Prefer", "count=exact")] ""
+       `shouldRespondWith`
+        [json|[
+          {"id":1,"name":"Walmart"},
+          {"id":2,"name":"Target"}
+        ]|]
+        { matchStatus  = 200
+        , matchHeaders = [ matchContentTypeJson
+                         , "Content-Range" <:> "0-1/2" ]
+        }
+
+    it "works with count=planned" $ do
+      request methodGet "/projects?select=name,clients(name)&clients=not.is.null"
+        [("Prefer", "count=planned")] ""
+       `shouldRespondWith`
+        [json|[
+          {"name":"Windows 7", "clients":{"name":"Microsoft"}},
+          {"name":"Windows 10", "clients":{"name":"Microsoft"}},
+          {"name":"IOS", "clients":{"name":"Apple"}},
+          {"name":"OSX", "clients":{"name":"Apple"}}
+        ]|]
+        { matchStatus  = 206
+        , matchHeaders = [ matchContentTypeJson
+                         , "Content-Range" <:> "0-3/1200" ]
+        }
+      request methodGet "/projects?select=name,clients()&clients=is.null"
+        [("Prefer", "count=planned")] ""
+       `shouldRespondWith`
+        [json|[{"name":"Orphan"}]|]
+        { matchStatus  = 200
+        , matchHeaders = [ matchContentTypeJson
+                         , "Content-Range" <:> "0-0/1" ]
+        }
+      request methodGet "/client?select=*,clientinfo(),contact()&clientinfo.other=ilike.*main*&contact.name=ilike.*tabby*&or=(clientinfo.not.is.null,contact.not.is.null)"
+        [("Prefer", "count=planned")] ""
+       `shouldRespondWith`
+        [json|[
+          {"id":1,"name":"Walmart"},
+          {"id":2,"name":"Target"}
+        ]|]
+        { matchStatus  = 206
+        , matchHeaders = [ matchContentTypeJson
+                         , "Content-Range" <:> "0-1/952" ]
+        }
+
+    it "works with count=estimated" $ do
+      request methodGet "/projects?select=name,clients(name)&clients=not.is.null"
+        [("Prefer", "count=estimated")] ""
+       `shouldRespondWith`
+        [json|[
+          {"name":"Windows 7", "clients":{"name":"Microsoft"}},
+          {"name":"Windows 10", "clients":{"name":"Microsoft"}},
+          {"name":"IOS", "clients":{"name":"Apple"}},
+          {"name":"OSX", "clients":{"name":"Apple"}}
+        ]|]
+        { matchStatus  = 206
+        , matchHeaders = [ matchContentTypeJson
+                         , "Content-Range" <:> "0-3/1200" ]
+        }
+      request methodGet "/projects?select=name,clients()&clients=is.null"
+        [("Prefer", "count=estimated")] ""
+       `shouldRespondWith`
+        [json|[{"name":"Orphan"}]|]
+        { matchStatus  = 200
+        , matchHeaders = [ matchContentTypeJson
+                         , "Content-Range" <:> "0-0/1" ]
+        }
+      request methodGet "/client?select=*,clientinfo(),contact()&clientinfo.other=ilike.*main*&contact.name=ilike.*tabby*&or=(clientinfo.not.is.null,contact.not.is.null)"
+        [("Prefer", "count=estimated")] ""
+       `shouldRespondWith`
+        [json|[
+          {"id":1,"name":"Walmart"},
+          {"id":2,"name":"Target"}
+        ]|]
+        { matchStatus  = 206
+        , matchHeaders = [ matchContentTypeJson
+                         , "Content-Range" <:> "0-1/952" ]
         }

@@ -15,6 +15,7 @@ module PostgREST.Query.SqlFragment
   , mutRangeF
   , orderF
   , pgFmtColumn
+  , pgFmtFilter
   , pgFmtIdent
   , pgFmtJoinCondition
   , pgFmtLogicTree
@@ -336,7 +337,7 @@ pgFmtArrayLiteralForField values _ = unknownLiteral (pgBuildArrayLiteral values)
 
 
 pgFmtFilter :: QualifiedIdentifier -> CoercibleFilter -> SQL.Snippet
-pgFmtFilter _ (CoercibleFilterNullEmbed hasNot fld) = pgFmtIdent fld <> " IS " <> (if hasNot then "NOT" else mempty) <> " NULL"
+pgFmtFilter _ (CoercibleFilterNullEmbed hasNot fld) = pgFmtIdent fld <> " IS " <> (if not hasNot then "NOT " else mempty) <> "DISTINCT FROM NULL"
 pgFmtFilter _ (CoercibleFilter _ (NoOpExpr _)) = mempty -- TODO unreachable because NoOpExpr is filtered on QueryParams
 pgFmtFilter table (CoercibleFilter fld (OpExpr hasNot oper)) = notOp <> " " <> pgFmtField table fld <> case oper of
    Op op val  -> " " <> simpleOperator op <> " " <> pgFmtUnknownLiteralForField (unknownLiteral val) fld

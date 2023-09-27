@@ -46,11 +46,23 @@ matchCTArrayStrip = "Content-Type" <:> "application/vnd.pgrst.array+json;nulls=s
 matchCTSingularStrip :: MatchHeader
 matchCTSingularStrip = "Content-Type" <:> "application/vnd.pgrst.object+json;nulls=stripped; charset=utf-8"
 
+matchHeaderValuePresent :: HeaderName -> BS.ByteString -> MatchHeader
+matchHeaderValuePresent name val = MatchHeader $ \headers _ ->
+  case lookup name headers of
+    Just hdr -> if val `BS.isInfixOf` hdr then Nothing else Just $ "missing header value: " <> toS val <> "\n"
+    Nothing  -> Just $ "missing header: " <> toS (original name) <> "\n"
+
 matchHeaderAbsent :: HeaderName -> MatchHeader
 matchHeaderAbsent name = MatchHeader $ \headers _body ->
   case lookup name headers of
     Just _  -> Just $ "unexpected header: " <> toS (original name) <> "\n"
     Nothing -> Nothing
+
+matchHeaderPresent :: HeaderName -> MatchHeader
+matchHeaderPresent name = MatchHeader $ \headers _body ->
+  case lookup name headers of
+    Just _  -> Nothing
+    Nothing -> Just $ "missing header: " <> toS (original name) <> "\n"
 
 validateOpenApiResponse :: [Header] -> WaiSession () ()
 validateOpenApiResponse headers = do
@@ -91,6 +103,7 @@ baseCfg = let secret = Just $ encodeUtf8 "reallyreallyreallyreallyverysafe" in
   , configDbPoolAcquisitionTimeout = 10
   , configDbPoolMaxLifetime     = 1800
   , configDbPoolMaxIdletime     = 600
+  , configDbPoolAutomaticRecovery = True
   , configDbPreRequest          = Just $ QualifiedIdentifier "test" "switch_role"
   , configDbPreparedStatements  = True
   , configDbRootSpec            = Nothing
@@ -218,6 +231,9 @@ testPgSafeUpdateEnabledCfg = baseCfg { configDbPreRequest = Just $ QualifiedIden
 
 testObservabilityCfg :: AppConfig
 testObservabilityCfg = baseCfg { configServerTraceHeader = Just $ mk "X-Request-Id" }
+
+testCfgServerTiming :: AppConfig
+testCfgServerTiming = baseCfg { configDbPlanEnabled = True }
 
 analyzeTable :: Text -> IO ()
 analyzeTable tableName =
