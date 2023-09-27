@@ -1,11 +1,18 @@
-{ system ? builtins.currentSystem }:
+{ system ? builtins.currentSystem
+, name ? "postgrest"
+, compiler ? "ghc948"
+, # Commit of the Nixpkgs repository that we want to use.
+  nixpkgsVersion ? import nix/nixpkgs-version.nix
+, # Nix files that describe the Nixpkgs repository. We evaluate the expression
+  # using `import` below.
+  nixpkgs ? builtins.fetchTarball {
+    url = "https://github.com/nixos/nixpkgs/archive/${nixpkgsVersion.rev}.tar.gz";
+    sha256 = nixpkgsVersion.tarballHash;
+  }
+, extraOverrides ? (final: prev: { })
+}:
 
 let
-  name =
-    "postgrest";
-
-  compiler =
-    "ghc948";
 
   # PostgREST source files, filtered based on the rules in the .gitignore files
   # and file extensions. We want to include as litte as possible, as the files
@@ -16,17 +23,6 @@ let
       (pkgs.gitignoreSource ./.)
       [ ".cabal" ".hs" ".lhs" "LICENSE" ];
 
-  # Commit of the Nixpkgs repository that we want to use.
-  nixpkgsVersion =
-    import nix/nixpkgs-version.nix;
-
-  # Nix files that describe the Nixpkgs repository. We evaluate the expression
-  # using `import` below.
-  nixpkgs =
-    builtins.fetchTarball {
-      url = "https://github.com/nixos/nixpkgs/archive/${nixpkgsVersion.rev}.tar.gz";
-      sha256 = nixpkgsVersion.tarballHash;
-    };
 
   nixpkgs-patched = (import nixpkgs { inherit overlays system; }).applyPatches {
     name = "nixpkgs-patched";
@@ -46,7 +42,7 @@ let
       allOverlays.postgresql-legacy
       allOverlays.postgresql-future
       allOverlays.postgis
-      (allOverlays.haskell-packages { inherit compiler; })
+      (allOverlays.haskell-packages { inherit compiler extraOverrides; })
       allOverlays.slocat
     ];
 
