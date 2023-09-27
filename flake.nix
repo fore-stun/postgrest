@@ -24,11 +24,16 @@
         in
         {
           packages."${system}".default =
+            if pkgs.hostPlatform.isLinux
+            then p.postgrestStatic
+            else
               lib.pipe p.postgrestPackage
                 [ pkgs.haskell.lib.justStaticExecutables ];
         };
     in
     foldMap pgrst [
+      "x86_64-linux"
+      "aarch64-linux"
       "x86_64-darwin"
       "aarch64-darwin"
     ];
