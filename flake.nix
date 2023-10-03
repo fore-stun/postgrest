@@ -8,17 +8,28 @@
   outputs = { self, nixpkgs }:
     let
       inherit (nixpkgs) lib;
-      pkgs = nixpkgs.legacyPackages.aarch64-darwin;
-      extraOverrides = final: prev: {
-        http2 = pkgs.haskell.lib.dontCheck prev.http2;
-      };
-      p = import ./. {
-        inherit nixpkgs extraOverrides;
-        inherit (pkgs) system;
-      };
+
+      foldMap = f:
+        builtins.foldl' (acc: x: lib.recursiveUpdate acc (f x)) { };
+
+      pgrst = system:
+        let
+          pkgs = nixpkgs.legacyPackages."${system}";
+          extraOverrides = final: prev: {
+            http2 = pkgs.haskell.lib.dontCheck prev.http2;
+          };
+          p = import ./. {
+            inherit nixpkgs extraOverrides system;
+          };
+        in
+        {
+          packages."${system}".default =
+              lib.pipe p.postgrestPackage
+                [ pkgs.haskell.lib.justStaticExecutables ];
+        };
     in
-    {
-      packages.aarch64-darwin.default = lib.pipe p.postgrestPackage
-        [ pkgs.haskell.lib.justStaticExecutables ];
-    };
+    foldMap pgrst [
+      "x86_64-darwin"
+      "aarch64-darwin"
+    ];
 }
