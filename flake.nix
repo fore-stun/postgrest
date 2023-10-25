@@ -1,6 +1,10 @@
 {
   description = "Postgrest";
 
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/dbf5322e93bcc6cfc52268367a8ad21c09d76fea";
+  };
+
   outputs = { self, nixpkgs }:
     let
       inherit (nixpkgs) lib;
