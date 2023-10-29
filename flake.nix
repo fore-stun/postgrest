@@ -24,7 +24,7 @@
         in
         {
           packages."${system}".default =
-            if pkgs.hostPlatform.isLinux
+            if pkgs.hostPlatform.isLinux && pkgs.hostPlatform.isx86_64
             then p.postgrestStatic
             else
               lib.pipe p.postgrestPackage
