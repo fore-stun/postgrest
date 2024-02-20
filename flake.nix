@@ -16,7 +16,7 @@
         let
           pkgs = nixpkgs.legacyPackages."${system}";
           extraOverrides = final: prev: {
-            http2 = pkgs.haskell.lib.dontCheck prev.http2;
+            # http2 = pkgs.haskell.lib.dontCheck prev.http2;
           };
           p = import ./. {
             inherit nixpkgs extraOverrides system;
